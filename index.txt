@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teachable Machine + GitHub + App Inventor</title>
+
+    <!-- Cargar TensorFlow y Teachable Machine -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest"></script>
+
+    <style>
+        body {
+            font-family: Arial;
+            text-align: center;
+            padding: 20px;
+        }
+        video {
+            width: 90%;
+            max-width: 400px;
+            border-radius: 10px;
+            margin-top: 15px;
+        }
+        #label {
+            font-size: 22px;
+            margin-top: 20px;
+            font-weight: bold;
+        }
+        button {
+            padding: 12px 20px;
+            margin: 10px;
+            font-size: 18px;
+        }
+    </style>
+
+</head>
+<body>
+
+    <h2>Mi modelo Teachable Machine</h2>
+
+    <button onclick="init()">Iniciar Cámara</button>
+
+    <div id="webcam-container"></div>
+    <div id="label">Predicción: ---</div>
+
+<script>
+    // 🔗 LINK DE TU MODELO en GitHub  
+    const URL = "https://raw.githubusercontent.com/pipesco77/mi_1_app/refs/heads/main/model.json";
+
+    let model, webcam, maxPredictions;
+
+    async function init() {
+        // Cargar modelo y metadata (GitHub entrega ambos desde el mismo json)
+        model = await tmImage.load(URL, URL.replace("model.json", "metadata.json"));
+        maxPredictions = model.getTotalClasses();
+
+        // Configurar la cámara
+        const flip = true;
+        webcam = new tmImage.Webcam(300, 300, flip);
+        await webcam.setup(); 
+        await webcam.play();
+        window.requestAnimationFrame(loop);
+
+        document.getElementById("webcam-container").appendChild(webcam.canvas);
+    }
+
+    async function loop() {
+        webcam.update();
+        await predict();
+        window.requestAnimationFrame(loop);
+    }
+
+    async function predict() {
+        const prediction = await model.predict(webcam.canvas);
+
+        // Elegimos la clase con mayor probabilidad
+        let best = prediction.reduce((a, b) => a.probability > b.probability ? a : b);
+
+        document.getElementById("label").innerHTML =
+            "Predicción: " + best.className + " (" + (best.probability*100).toFixed(1) + "%)";
+
+        // Enviar resultado a App Inventor
+        if (window.AppInventor) {
+            window.AppInventor.setWebViewString(best.className);
+        }
+    }
+</script>
+
+</body>
+</html>
